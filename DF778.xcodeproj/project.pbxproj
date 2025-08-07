@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		781F938C2E42B1F200EDAF44 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 781F938B2E42B1F200EDAF44 /* Launch Screen.storyboard */; };
+		781F93BC2E44F86200EDAF44 /* Launch Screen23.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 781F93BB2E44F86200EDAF44 /* Launch Screen23.storyboard */; };
+		781F93BE2E44F8B800EDAF44 /* Launch Screen 2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 781F93BD2E44F8B800EDAF44 /* Launch Screen 2.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +34,8 @@
 		781F934D2E42AD0300EDAF44 /* DF778Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DF778Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		781F93572E42AD0300EDAF44 /* DF778UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DF778UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		781F938B2E42B1F200EDAF44 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		781F93BB2E44F86200EDAF44 /* Launch Screen23.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen23.storyboard"; sourceTree = "<group>"; };
+		781F93BD2E44F8B800EDAF44 /* Launch Screen 2.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen 2.storyboard"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,7 +84,9 @@
 		781F93362E42AD0000EDAF44 = {
 			isa = PBXGroup;
 			children = (
+				781F93BB2E44F86200EDAF44 /* Launch Screen23.storyboard */,
 				781F938B2E42B1F200EDAF44 /* Launch Screen.storyboard */,
+				781F93BD2E44F8B800EDAF44 /* Launch Screen 2.storyboard */,
 				781F93412E42AD0000EDAF44 /* DF778 */,
 				781F93502E42AD0300EDAF44 /* DF778Tests */,
 				781F935A2E42AD0300EDAF44 /* DF778UITests */,
@@ -219,6 +225,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				781F938C2E42B1F200EDAF44 /* Launch Screen.storyboard in Resources */,
+				781F93BE2E44F8B800EDAF44 /* Launch Screen 2.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -233,6 +240,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				781F93BC2E44F86200EDAF44 /* Launch Screen23.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -407,6 +415,7 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -446,6 +455,7 @@
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

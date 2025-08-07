@@ -1,797 +1,250 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @StateObject private var viewModel = DashboardViewModel()
-    @State private var showingNotifications = false
+    @StateObject private var dataService = DataService.shared
     @State private var showingCreateTask = false
-    @State private var showingCreateProject = false
+    @State private var selectedTask: Task?
+    @State private var showingTaskDetail = false
+    @Binding var selectedTab: Int
     
     var body: some View {
         NavigationView {
-            ZStack {
-                // Background
-                Color.backgroundPrimary
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    LazyVStack(spacing: 20) {
-                        // Header with notifications
-                        DashboardHeader(
-                            hasNotifications: viewModel.hasUnreadNotifications,
-                            onNotificationsTapped: { showingNotifications = true },
-                            onRefresh: { viewModel.refreshData() }
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let user = dataService.currentUser {
+                            Text("Welcome back, \(user.name)!")
+                                .font(.title2)
+                                .foregroundColor(.textPrimary)
+                        }
+                        
+                        Text("Here's your productivity overview")
+                            .font(.body)
+                            .foregroundColor(.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    
+                    // Quick Stats
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
+                        StatCard(
+                            title: "Completed",
+                            value: "\(dataService.completedTasksCount)",
+                            color: .statusSuccess,
+                            icon: "checkmark.circle.fill"
                         )
                         
-                        // Quick Stats
-                        QuickStatsSection(viewModel: viewModel)
-                        
-                        // Today's Tasks
-                        TodayTasksSection(
-                            tasks: viewModel.todayTasks,
-                            onTaskTapped: { task in
-                                viewModel.markTaskComplete(task)
-                            }
+                        StatCard(
+                            title: "In Progress",
+                            value: "\(dataService.inProgressTasksCount)",
+                            color: .accentYellow,
+                            icon: "clock.fill"
                         )
                         
-                        // Active Projects
-                        ActiveProjectsSection(
-                            projects: viewModel.activeProjects,
-                            onCreateProject: { showingCreateProject = true }
-                        )
-                        
-                        // Recent Activity
-                        RecentActivitySection(
-                            tasks: viewModel.recentTasks,
-                            onCreateTask: { showingCreateTask = true }
-                        )
-                        
-                        // Productivity Insights
-                        ProductivityInsightsSection(
-                            metrics: viewModel.productivityMetrics
-                        )
-                        
-                        // Upcoming Deadlines
-                        UpcomingDeadlinesSection(
-                            tasks: viewModel.upcomingDeadlines
+                        StatCard(
+                            title: "Pending",
+                            value: "\(dataService.pendingTasksCount)",
+                            color: .textSecondary,
+                            icon: "circle.fill"
                         )
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 100) // Account for tab bar
-                }
-                .refreshable {
-                    viewModel.refreshData()
-                }
-                
-                // Loading overlay
-                if viewModel.isLoading {
-                    Color.overlay
-                        .ignoresSafeArea()
                     
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .accentYellow))
-                        .scaleEffect(1.2)
-                }
-            }
-            .navigationBarHidden(true)
-        }
-        .sheet(isPresented: $showingNotifications) {
-            VStack {
-                Text("Notifications")
-                    .font(AppFonts.title1)
-                    .foregroundColor(.textPrimary)
-                Text("Coming Soon")
-                    .font(AppFonts.body)
-                    .foregroundColor(.textSecondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.backgroundPrimary)
-        }
-        .sheet(isPresented: $showingCreateTask) {
-            CreateTaskView()
-        }
-        .sheet(isPresented: $showingCreateProject) {
-            CreateProjectView()
-        }
-    }
-}
-
-// MARK: - Dashboard Header
-
-struct DashboardHeader: View {
-    let hasNotifications: Bool
-    let onNotificationsTapped: () -> Void
-    let onRefresh: () -> Void
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Good morning")
-                    .font(AppFonts.headline)
-                    .foregroundColor(.textSecondary)
-                
-                Text("Ready to be productive?")
-                    .font(AppFonts.dashboardTitle)
-                    .foregroundColor(.textPrimary)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 16) {
-                // Refresh button
-                Button {
-                    onRefresh()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 18))
-                        .foregroundColor(.textSecondary)
-                }
-                
-                // Notifications button
-                Button {
-                    onNotificationsTapped()
-                } label: {
-                    ZStack {
-                        Image(systemName: "bell")
-                            .font(.system(size: 18))
-                            .foregroundColor(.textSecondary)
+                    // Recent Tasks
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Recent Tasks")
+                                .font(.title3)
+                                .foregroundColor(.textPrimary)
+                            
+                            Spacer()
+                            
+                            Button("View All") {
+                                switchToTasksTab()
+                            }
+                            .font(.caption1)
+                            .foregroundColor(.accentYellow)
+                        }
+                        .padding(.horizontal)
                         
-                        if hasNotifications {
-                            Circle()
-                                .fill(Color.statusError)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 8, y: -8)
+                        if dataService.tasks.isEmpty {
+                            EmptyStateView()
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(Array(dataService.tasks.prefix(5))) { task in
+                                    TaskRowView(task: task) {
+                                        selectedTask = task
+                                        showingTaskDetail = true
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
                         }
                     }
+                    
+                    Spacer(minLength: 100)
                 }
-                
-                // Profile button
-                Button {
-                    // Handle profile tap
-                } label: {
-                    Circle()
-                        .fill(Color.gradientAccent)
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Text("U")
-                                .font(AppFonts.buttonMedium)
-                                .foregroundColor(.white)
-                        )
-                }
+                .padding(.top)
             }
-        }
-        .padding(.top, 8)
-    }
-}
-
-// MARK: - Quick Stats Section
-
-struct QuickStatsSection: View {
-    @ObservedObject var viewModel: DashboardViewModel
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Overview")
-                .font(AppFonts.headline)
-                .foregroundColor(.textPrimary)
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatCard(
-                    title: "Active Tasks",
-                    value: "\(viewModel.todayTasksCount)",
-                    subtitle: "due today",
-                    color: .accentBlue,
-                    icon: "checkmark.circle"
-                )
-                
-                StatCard(
-                    title: "Projects",
-                    value: "\(viewModel.activeProjectsCount)",
-                    subtitle: "in progress",
-                    color: .accentGreen,
-                    icon: "folder"
-                )
-                
-                StatCard(
-                    title: "Completion",
-                    value: "\(Int(viewModel.taskCompletionRate))%",
-                    subtitle: "this week",
-                    color: .accentYellow,
-                    icon: "chart.bar"
-                )
-                
-                StatCard(
-                    title: "Weekly Goal",
-                    value: "\(Int(viewModel.weeklyGoalProgress * 100))%",
-                    subtitle: "progress",
-                    color: .accentPurple,
-                    icon: "target"
-                )
-            }
-        }
-    }
-}
-
-// MARK: - Today's Tasks Section
-
-struct TodayTasksSection: View {
-    let tasks: [Task]
-    let onTaskTapped: (Task) -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Today's Tasks")
-                    .font(AppFonts.headline)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                if !tasks.isEmpty {
-                    Text("\(tasks.count)")
-                        .font(AppFonts.caption1)
-                        .foregroundColor(.textAccent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.cardBackground)
-                        .cornerRadius(8)
-                }
-            }
-            
-            if tasks.isEmpty {
-                EmptyStateView(
-                    icon: "checkmark.circle",
-                    title: "No tasks due today",
-                    subtitle: "Great job staying on top of things!"
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(tasks) { task in
-                        TodayTaskRow(
-                            task: task,
-                            onTapped: { onTaskTapped(task) }
-                        )
+            .background(Color.backgroundPrimary.ignoresSafeArea())
+            .navigationTitle("Dashboard")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingCreateTask = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .foregroundColor(.accentYellow)
                     }
                 }
             }
+            .sheet(isPresented: $showingCreateTask) {
+                CreateTaskView { task in
+                    dataService.addTask(task)
+                }
+            }
+            .sheet(isPresented: $showingTaskDetail) {
+                if let task = selectedTask {
+                    TaskDetailView(task: task)
+                }
+            }
         }
     }
-}
-
-// MARK: - Active Projects Section
-
-struct ActiveProjectsSection: View {
-    let projects: [Project]
-    let onCreateProject: () -> Void
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Active Projects")
-                    .font(AppFonts.headline)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                Button {
-                    onCreateProject()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.accentYellow)
-                }
-            }
-            
-            if projects.isEmpty {
-                EmptyStateView(
-                    icon: "folder.badge.plus",
-                    title: "No active projects",
-                    subtitle: "Create your first project to get started"
-                )
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 16) {
-                        ForEach(projects) { project in
-                            ProjectCard(project: project)
-                        }
-                    }
-                    .padding(.horizontal, 1)
-                }
-            }
-        }
+    private func switchToTasksTab() {
+        selectedTab = 1 // Switch to Tasks tab
     }
 }
-
-// MARK: - Recent Activity Section
-
-struct RecentActivitySection: View {
-    let tasks: [Task]
-    let onCreateTask: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Recent Activity")
-                    .font(AppFonts.headline)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                Button {
-                    onCreateTask()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.accentYellow)
-                }
-            }
-            
-            if tasks.isEmpty {
-                EmptyStateView(
-                    icon: "clock",
-                    title: "No recent activity",
-                    subtitle: "Start by creating your first task"
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(tasks.prefix(5)) { task in
-                        RecentTaskRow(task: task)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Productivity Insights Section
-
-struct ProductivityInsightsSection: View {
-    let metrics: ProductivityMetrics
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Productivity Insights")
-                .font(AppFonts.headline)
-                .foregroundColor(.textPrimary)
-            
-            VStack(spacing: 16) {
-                // Productivity trend
-                ProductivityTrendCard(metrics: metrics)
-                
-                // Completion rate
-                CompletionRateCard(metrics: metrics)
-            }
-        }
-    }
-}
-
-// MARK: - Upcoming Deadlines Section
-
-struct UpcomingDeadlinesSection: View {
-    let tasks: [Task]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Upcoming Deadlines")
-                .font(AppFonts.headline)
-                .foregroundColor(.textPrimary)
-            
-            if tasks.isEmpty {
-                EmptyStateView(
-                    icon: "calendar",
-                    title: "No upcoming deadlines",
-                    subtitle: "You're all caught up!"
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(tasks) { task in
-                        DeadlineTaskRow(task: task)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Supporting Views
 
 struct StatCard: View {
     let title: String
     let value: String
-    let subtitle: String
     let color: Color
     let icon: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(color)
-                
-                Spacer()
-            }
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(AppFonts.dashboardMetric)
-                    .foregroundColor(.textPrimary)
-                
-                Text(title)
-                    .font(AppFonts.cardTitle)
-                    .foregroundColor(.textSecondary)
-                
-                Text(subtitle)
-                    .font(AppFonts.caption1)
-                    .foregroundColor(.textTertiary)
-            }
+            Text(value)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.textPrimary)
+            
+            Text(title)
+                .font(.caption1)
+                .foregroundColor(.textSecondary)
         }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(16)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.cardBackground)
+        )
     }
 }
 
-struct TodayTaskRow: View {
+struct TaskRowView: View {
     let task: Task
-    let onTapped: () -> Void
+    let onTap: () -> Void
+    @StateObject private var dataService = DataService.shared
     
     var body: some View {
         HStack(spacing: 12) {
+            // Status Indicator
             Button {
-                onTapped()
+                if task.status != .completed {
+                    dataService.completeTask(task)
+                }
             } label: {
                 Image(systemName: task.status == .completed ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundColor(task.status == .completed ? .statusSuccess : .textTertiary)
+                    .font(.title3)
+                    .foregroundColor(Color(hex: task.status.color))
             }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
-                    .font(AppFonts.taskTitle)
-                    .foregroundColor(.textPrimary)
-                    .strikethrough(task.status == .completed)
-                
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(task.priority.color)
-                        .frame(width: 8, height: 8)
-                    
-                    Text(task.priority.displayName)
-                        .font(AppFonts.caption1)
-                        .foregroundColor(.textTertiary)
-                    
-                    if let dueDate = task.dueDate {
-                        Text("•")
-                            .font(AppFonts.caption1)
-                            .foregroundColor(.textTertiary)
-                        
-                        Text(dueDate, style: .time)
-                            .font(AppFonts.caption1)
-                            .foregroundColor(.textTertiary)
-                    }
-                }
-            }
-            
-            Spacer()
-        }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(12)
-    }
-}
-
-struct ProjectCard: View {
-    let project: Project
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Circle()
-                    .fill(Color(hex: project.color))
-                    .frame(width: 12, height: 12)
-                
-                Spacer()
-                
-                Text("\(project.completionPercentage)%")
-                    .font(AppFonts.caption1)
-                    .foregroundColor(.textTertiary)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(project.name)
-                    .font(AppFonts.cardTitle)
-                    .foregroundColor(.textPrimary)
-                    .lineLimit(2)
-                
-                Text("\(project.completedTasks)/\(project.totalTasks) tasks")
-                    .font(AppFonts.caption1)
-                    .foregroundColor(.textSecondary)
-                
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(Color.backgroundSecondary)
-                            .frame(height: 4)
-                            .cornerRadius(2)
-                        
-                        Rectangle()
-                            .fill(Color(hex: project.color))
-                            .frame(width: geometry.size.width * project.progress, height: 4)
-                            .cornerRadius(2)
-                    }
-                }
-                .frame(height: 4)
-            }
-        }
-        .padding(16)
-        .frame(width: 160)
-        .background(Color.cardBackground)
-        .cornerRadius(16)
-    }
-}
-
-struct RecentTaskRow: View {
-    let task: Task
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(task.status.color)
-                .frame(width: 8, height: 8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(AppFonts.taskTitle)
+                    .font(.bodyBold)
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)
                 
-                Text(task.status.displayName)
-                    .font(AppFonts.caption1)
-                    .foregroundColor(.textSecondary)
-            }
-            
-            Spacer()
-            
-            Text(task.updatedAt, style: .relative)
-                .font(AppFonts.caption1)
-                .foregroundColor(.textTertiary)
-        }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(12)
-    }
-}
-
-struct DeadlineTaskRow: View {
-    let task: Task
-    
-    private var daysUntilDue: Int {
-        guard let dueDate = task.dueDate else { return 0 }
-        return Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
-    }
-    
-    private var deadlineColor: Color {
-        if daysUntilDue < 0 {
-            return .statusError
-        } else if daysUntilDue <= 1 {
-            return .statusWarning
-        } else {
-            return .textSecondary
-        }
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(AppFonts.taskTitle)
-                    .foregroundColor(.textPrimary)
-                    .lineLimit(1)
-                
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(task.priority.color)
-                        .frame(width: 8, height: 8)
-                    
-                    Text(task.priority.displayName)
-                        .font(AppFonts.caption1)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                if let dueDate = task.dueDate {
-                    Text(dueDate, style: .date)
-                        .font(AppFonts.caption1)
-                        .foregroundColor(deadlineColor)
-                    
-                    Text(daysUntilDue < 0 ? "Overdue" : 
-                         daysUntilDue == 0 ? "Today" : 
-                         "\(daysUntilDue) days")
-                        .font(AppFonts.caption2)
-                        .foregroundColor(deadlineColor)
-                }
-            }
-        }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(12)
-    }
-}
-
-struct ProductivityTrendCard: View {
-    let metrics: ProductivityMetrics
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("This Week")
-                    .font(AppFonts.cardTitle)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Image(systemName: metrics.productivityTrend >= 0 ? "arrow.up" : "arrow.down")
-                        .font(.system(size: 12))
-                        .foregroundColor(metrics.productivityTrend >= 0 ? .statusSuccess : .statusError)
-                    
-                    Text("\(abs(Int(metrics.productivityTrend)))%")
-                        .font(AppFonts.caption1)
-                        .foregroundColor(metrics.productivityTrend >= 0 ? .statusSuccess : .statusError)
-                }
-            }
-            
-            HStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(metrics.tasksCompletedThisWeek)")
-                        .font(AppFonts.monoLarge)
-                        .foregroundColor(.textPrimary)
-                    
-                    Text("Completed")
-                        .font(AppFonts.caption1)
+                if !task.description.isEmpty {
+                    Text(task.description)
+                        .font(.caption1)
                         .foregroundColor(.textSecondary)
+                        .lineLimit(2)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(metrics.tasksCompletedLastWeek)")
-                        .font(AppFonts.monoLarge)
+                HStack {
+                    Text(task.status.rawValue)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: task.status.color).opacity(0.2))
+                        .foregroundColor(Color(hex: task.status.color))
+                        .cornerRadius(8)
+                    
+                    Text(task.priority.rawValue)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: task.priority.color).opacity(0.2))
+                        .foregroundColor(Color(hex: task.priority.color))
+                        .cornerRadius(8)
+                    
+                    Spacer()
+                }
+            }
+            
+            Spacer()
+            
+            if let dueDate = task.dueDate {
+                VStack {
+                    Text("Due")
+                        .font(.caption2)
                         .foregroundColor(.textTertiary)
                     
-                    Text("Last Week")
-                        .font(AppFonts.caption1)
+                    Text(dueDate, format: .dateTime.month().day())
+                        .font(.caption1)
                         .foregroundColor(.textSecondary)
                 }
             }
         }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(16)
-    }
-}
-
-struct CompletionRateCard: View {
-    let metrics: ProductivityMetrics
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Completion Rate")
-                    .font(AppFonts.cardTitle)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                Text("\(Int(metrics.completionRate))%")
-                    .font(AppFonts.monoLarge)
-                    .foregroundColor(.accentGreen)
-            }
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.backgroundSecondary)
-                        .frame(height: 8)
-                        .cornerRadius(4)
-                    
-                    Rectangle()
-                        .fill(Color.gradientSuccess)
-                        .frame(width: geometry.size.width * (metrics.completionRate / 100), height: 8)
-                        .cornerRadius(4)
-                }
-            }
-            .frame(height: 8)
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.cardBackground)
+        )
+        .onTapGesture {
+            onTap()
         }
-        .padding(16)
-        .background(Color.cardBackground)
-        .cornerRadius(16)
     }
 }
 
 struct EmptyStateView: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: icon)
+            Image(systemName: "tray")
                 .font(.system(size: 40))
                 .foregroundColor(.textTertiary)
             
-            VStack(spacing: 4) {
-                Text(title)
-                    .font(AppFonts.cardTitle)
-                    .foregroundColor(.textSecondary)
-                
-                Text(subtitle)
-                    .font(AppFonts.caption1)
-                    .foregroundColor(.textTertiary)
-                    .multilineTextAlignment(.center)
-            }
+            Text("No tasks yet")
+                .font(.title3)
+                .foregroundColor(.textSecondary)
+            
+            Text("Create your first task to get started")
+                .font(.body)
+                .foregroundColor(.textTertiary)
+                .multilineTextAlignment(.center)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity)
-        .background(Color.cardBackground)
-        .cornerRadius(16)
-    }
-}
-
-// MARK: - Notifications View (Placeholder)
-
-// MARK: - Placeholder Views
-
-struct CreateTaskView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Create Task")
-                    .font(AppFonts.title1)
-                    .foregroundColor(.textPrimary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.backgroundPrimary)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct CreateProjectView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Create Project")
-                    .font(AppFonts.title1)
-                    .foregroundColor(.textPrimary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.backgroundPrimary)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
+        .padding(40)
     }
 }
 
 #Preview {
-    DashboardView()
+    DashboardView(selectedTab: .constant(0))
 }
