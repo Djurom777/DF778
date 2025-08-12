@@ -4,7 +4,6 @@ struct DashboardView: View {
     @StateObject private var dataService = DataService.shared
     @State private var showingCreateTask = false
     @State private var selectedTask: Task?
-    @State private var showingTaskDetail = false
     @Binding var selectedTab: Int
     
     var body: some View {
@@ -75,7 +74,6 @@ struct DashboardView: View {
                                 ForEach(Array(dataService.tasks.prefix(5))) { task in
                                     TaskRowView(task: task) {
                                         selectedTask = task
-                                        showingTaskDetail = true
                                     }
                                 }
                             }
@@ -105,10 +103,8 @@ struct DashboardView: View {
                     dataService.addTask(task)
                 }
             }
-            .sheet(isPresented: $showingTaskDetail) {
-                if let task = selectedTask {
-                    TaskDetailView(task: task)
-                }
+            .sheet(item: $selectedTask) { task in
+                TaskDetailView(task: task)
             }
         }
     }

@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var showingAppearance = false
     @State private var showingAnalytics = false
     @State private var showingClearDataAlert = false
+    @State private var showingSignOutAlert = false
     
     var body: some View {
         NavigationView {
@@ -96,22 +97,13 @@ struct SettingsView: View {
                 }
                 .listRowBackground(Color.cardBackground)
                 
-                // App Info
-                Section("About") {
-                    SettingsRow(
-                        icon: "info.circle.fill",
-                        title: "Version",
-                        subtitle: "1.0.0",
-                        iconColor: .textSecondary
-                    ) {
-                        // Show version info (no action needed)
-                    }
-                }
-                .listRowBackground(Color.cardBackground)
+
                 
                 // Sign Out
                 Section {
-                    Button(action: signOut) {
+                    Button(action: {
+                        showingSignOutAlert = true
+                    }) {
                         HStack {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .foregroundColor(.statusError)
@@ -148,7 +140,16 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all your tasks and progress. This action cannot be undone.")
             }
+            .alert("Sign Out", isPresented: $showingSignOutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign Out", role: .destructive) {
+                    signOut()
+                }
+            } message: {
+                Text("Are you sure you want to sign out? You will need to sign in again to access your data.")
+            }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     private func signOut() {
@@ -206,6 +207,7 @@ struct ProfileEditView: View {
     @StateObject private var dataService = DataService.shared
     @State private var name: String = ""
     @State private var email: String = ""
+    @State private var showingDeleteAccountAlert = false
     
     var body: some View {
         NavigationView {
@@ -231,6 +233,30 @@ struct ProfileEditView: View {
                             .font(.body)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
+                    }
+                }
+                
+                Section("Danger Zone") {
+                    Button(action: {
+                        showingDeleteAccountAlert = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                                .foregroundColor(.statusError)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Delete Account")
+                                    .font(.bodyBold)
+                                    .foregroundColor(.statusError)
+                                
+                                Text("Permanently delete your account and all data")
+                                    .font(.caption1)
+                                    .foregroundColor(.textSecondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -261,6 +287,15 @@ struct ProfileEditView: View {
                 email = user.email
             }
         }
+        .alert("Delete Account", isPresented: $showingDeleteAccountAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text("This will permanently delete your account and all associated data. This action cannot be undone.")
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     private func saveProfile() {
@@ -274,6 +309,11 @@ struct ProfileEditView: View {
             // For now, we'll just update the current user directly
             dataService.currentUser = updatedUser
         }
+        dismiss()
+    }
+    
+    private func deleteAccount() {
+        dataService.deleteAccount()
         dismiss()
     }
 }
@@ -323,6 +363,7 @@ struct NotificationSettingsView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
@@ -381,6 +422,7 @@ struct AppearanceSettingsView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
@@ -422,6 +464,7 @@ struct AnalyticsSettingsView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 

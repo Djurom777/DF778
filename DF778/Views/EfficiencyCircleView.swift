@@ -216,10 +216,39 @@ struct WeeklyProgressView: View {
         ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     }
     
+    // Calculate tasks completed for each day of current week
+    func tasksCompletedForDay(_ dayIndex: Int) -> Int {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Get the start of current week (Monday)
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today),
+              let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: today)?.start else {
+            return 0
+        }
+        
+        // Calculate the specific day
+        guard let dayDate = calendar.date(byAdding: .day, value: dayIndex, to: startOfWeek) else {
+            return 0
+        }
+        
+        // Count completed tasks for this day
+        let completedTasks = dataService.tasks.filter { task in
+            guard let completedAt = task.completedAt else { return false }
+            return calendar.isDate(completedAt, inSameDayAs: dayDate)
+        }
+        
+        return completedTasks.count
+    }
+    
     var body: some View {
         VStack(spacing: 12) {
             HStack {
                 ForEach(Array(weekdays.enumerated()), id: \.offset) { index, day in
+                    let tasksCount = tasksCompletedForDay(index)
+                    let maxHeight: CGFloat = 60
+                    let barHeight: CGFloat = tasksCount > 0 ? max(10, min(maxHeight, CGFloat(tasksCount) * 12)) : 0
+                    
                     VStack(spacing: 8) {
                         Text(day)
                             .font(.caption2)
@@ -228,23 +257,25 @@ struct WeeklyProgressView: View {
                         // Progress bar for each day
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.textTertiary.opacity(0.3))
-                            .frame(width: 30, height: 60)
+                            .frame(width: 30, height: maxHeight)
                             .overlay(
                                 VStack {
                                     Spacer()
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.accentYellow, .accentGreen],
-                                                startPoint: .bottom,
-                                                endPoint: .top
+                                    if barHeight > 0 {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [.accentYellow, .accentGreen],
+                                                    startPoint: .bottom,
+                                                    endPoint: .top
+                                                )
                                             )
-                                        )
-                                        .frame(height: CGFloat.random(in: 10...50))
+                                            .frame(height: barHeight)
+                                    }
                                 }
                             )
                         
-                        Text("\(Int.random(in: 0...5))")
+                        Text("\(tasksCount)")
                             .font(.caption2)
                             .foregroundColor(.textPrimary)
                     }

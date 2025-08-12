@@ -5,7 +5,6 @@ struct TaskListView: View {
     @State private var showingCreateTask = false
     @State private var selectedFilter: TaskFilter = .all
     @State private var selectedTask: Task?
-    @State private var showingTaskDetail = false
     
     enum TaskFilter: String, CaseIterable {
         case all = "All"
@@ -58,7 +57,6 @@ struct TaskListView: View {
                         ForEach(filteredTasks) { task in
                             TaskRowView(task: task) {
                                 selectedTask = task
-                                showingTaskDetail = true
                             }
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
@@ -91,10 +89,8 @@ struct TaskListView: View {
                     dataService.addTask(task)
                 }
             }
-            .sheet(isPresented: $showingTaskDetail) {
-                if let task = selectedTask {
-                    TaskDetailView(task: task)
-                }
+            .sheet(item: $selectedTask) { task in
+                TaskDetailView(task: task)
             }
         }
     }
